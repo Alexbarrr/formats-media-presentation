@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="slides-format" content="viewport" />
+  <title>VOYAH × медиа-спецпроект</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style type="text/tailwindcss">
+    @theme {
+      --color-bg: #0b1020;
+      --color-bg-deep: #050814;
+      --color-surface: #131a30;
+      --color-text: #f4f7fb;
+      --color-text-secondary: #cbd5e1;
+      --color-text-muted: #8ea0b9;
+      --color-accent-1: #4fd1c5;
+      --color-accent-2: #6ee7f2;
+      --color-accent-3: #d7c07a;
+      --color-glass-bg: rgba(255,255,255,0.06);
+      --color-glass-border: rgba(255,255,255,0.10);
+      --color-vignette: rgba(0,0,0,0.42);
+      --font-display: 'Playfair Display', serif;
+      --font-body: 'Inter', sans-serif;
+    }
+  </style>
+  <style>
+    :root { --color-bg: #0b1020; --color-text: #f4f7fb; --glow-color-rgb: 79,209,197; }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { background: var(--color-bg); margin: 0; }
+    body { font-family: var(--font-body); color: var(--color-text); overflow: hidden; height: 100vh; width: 100vw; }
+    .deck { width: 100vw; height: 100vh; position: relative; }
+    .slide { position: absolute; inset: 0; background: var(--color-bg); display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transform: scale(0.95); transition: opacity 0.7s ease, transform 0.7s ease; pointer-events: none; overflow: hidden; }
+    .slide.active { opacity: 1; transform: scale(1); pointer-events: all; }
+    .slide > .content { position: relative; z-index: 2; width: 100%; max-width: 1180px; padding: clamp(1.5rem, 4vw, 4rem); }
+    .nav-controls { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 16px; z-index: 100; background: rgba(10,14,28,0.65); backdrop-filter: blur(10px); padding: 10px 24px; border-radius: 40px; border: 1px solid var(--color-glass-border); }
+    .nav-btn { width: 40px; height: 40px; border: none; background: var(--color-glass-bg); color: var(--color-accent-1); border-radius: 50%; font-size: 1.2rem; cursor: pointer; }
+    .slide-dots { display: flex; gap: 8px; }
+    .slide-dots .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--color-glass-border); cursor: pointer; transition: .3s; }
+    .slide-dots .dot.active { background: var(--color-accent-1); transform: scale(1.25); }
+    .slide-counter { font-size: .8rem; color: var(--color-text-muted); min-width: 40px; text-align: center; }
+    .reveal { opacity: 0; transform: translateY(20px); }
+    .gradient-mesh { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+    .blob { position: absolute; border-radius: 50%; filter: blur(80px); animation: float-slow 14s ease-in-out infinite; }
+    .blob:nth-child(2) { animation: float-drift 18s ease-in-out infinite; }
+    .blob:nth-child(3) { animation: float-slow 20s ease-in-out infinite reverse; }
+    .slide::before { content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"); background-repeat: repeat; background-size: 256px 256px; opacity: .03; mix-blend-mode: overlay; }
+    .slide::after { content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: radial-gradient(ellipse at center, transparent 48%, var(--color-vignette) 100%); }
+    .text-glow { text-shadow: 0 0 20px rgba(var(--glow-color-rgb),.45),0 0 40px rgba(var(--glow-color-rgb),.18); }
+    .stat-card { background: rgba(255,255,255,0.055); border: 1px solid rgba(255,255,255,0.10); border-radius: 24px; padding: 1.25rem; backdrop-filter: blur(12px); }
+    .chip { display:inline-flex; padding:.4rem .75rem; border-radius:999px; border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.05); color:var(--color-text-secondary); font-size:.82rem; }
+    .bar-track { width:100%; height:18px; border-radius:999px; overflow:hidden; background:rgba(255,255,255,.08); }
+    .bar-fill { height:100%; border-radius:999px; background:linear-gradient(90deg,var(--color-accent-1),var(--color-accent-2)); width:0; }
+    .angle { position:absolute; border:1px solid rgba(255,255,255,.08); background:linear-gradient(135deg,rgba(79,209,197,.08),rgba(215,192,122,.02)); transform:rotate(18deg); }
+    @keyframes float-slow { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(40px,-30px) scale(1.08)} }
+    @keyframes float-drift { 0%,100%{transform:translate(0,0) scale(1)} 33%{transform:translate(-40px,20px) scale(1.12)} 66%{transform:translate(35px,-20px) scale(.92)} }
+    @keyframes float { 0%,100% { transform: translateY(0);} 50% { transform: translateY(-14px);} }
+    @media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation-duration:.01ms !important; transition-duration:.2s !important; } }
+  </style>
+</head>
+<body>
+<div class="mouse-spotlight" style="position:fixed;inset:0;z-index:99;pointer-events:none;"></div>
+<div class="deck">
+
+  <div class="slide active" data-slide="1">
+    <div class="gradient-mesh">
+      <div class="blob" style="width:520px;height:520px;top:-100px;right:-120px;background:var(--color-accent-1);opacity:.14"></div>
+      <div class="blob" style="width:320px;height:320px;bottom:-80px;left:-80px;background:var(--color-accent-2);opacity:.11"></div>
+      <div class="blob" style="width:240px;height:240px;top:42%;left:14%;background:var(--color-accent-3);opacity:.10"></div>
+    </div>
+    <canvas class="particle-canvas" style="position:absolute;inset:0;z-index:1"></canvas>
+    <div class="content text-center">
+      <div class="reveal" style="display:inline-flex;align-items:center;justify-content:center;width:120px;height:120px;border-radius:32px;background:rgba(255,255,255,.07);backdrop-filter:blur(10px);margin:0 auto 20px auto;animation:float 3s ease-in-out infinite;">
+        <div style="font-size:64px;line-height:1;">⚡</div>
+      </div>
+      <h1 class="font-display text-[clamp(2.8rem,6vw,5.2rem)] font-black bg-linear-to-br from-accent-1 via-accent-2 to-accent-3 bg-clip-text text-transparent tracking-tight mb-4 reveal">VOYAH × EV ecosystem PR</h1>
+      <p class="text-[clamp(.9rem,1.5vw,1.3rem)] font-light text-text-muted tracking-[5px] uppercase reveal">спецпроект-предложение на базе 3 инфоповодов</p>
+      <div class="mt-8 flex justify-center gap-3 flex-wrap">
+        <span class="chip reveal">зарядная карта</span>
+        <span class="chip reveal">электротакси</span>
+        <span class="chip reveal">электро-регионы</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide" data-slide="2">
+    <div class="gradient-mesh">
+      <div class="blob" style="width:350px;height:350px;top:-90px;right:-70px;background:var(--color-accent-1);opacity:.08"></div>
+      <div class="blob" style="width:250px;height:250px;bottom:-70px;left:-50px;background:var(--color-accent-2);opacity:.06"></div>
+    </div>
+    <div class="content">
+      <h2 class="font-display text-[clamp(2rem,4vw,3.2rem)] font-bold mb-4 reveal">Зачем это VOYAH</h2>
+      <p class="text-text-secondary text-lg max-w-4xl mb-8 reveal">VOYAH в России работает как премиальный бренд электромобилей и гибридов, официально представлен на рынке и подает себя как сочетание технологий, комфорта и статуса. Это позволяет упаковать проект не в “новости про авто”, а в медиаисторию про зрелость электрической мобильности в России.</p>
+      <div class="grid grid-cols-3 gap-6 mt-6">
+        <div class="stat-card reveal"><div class="text-4xl font-extrabold text-glow mb-2">№1</div><div class="font-semibold mb-2">Повод говорить шире категории</div><div class="text-sm text-text-secondary">Не только о модели, а о готовности рынка: регионы, инфраструктура, B2B-эксплуатация.</div></div>
+        <div class="stat-card reveal"><div class="text-4xl font-extrabold text-glow mb-2">15.9%</div><div class="font-semibold mb-2">Доля VOYAH в NEV</div><div class="text-sm text-text-secondary">По итогам 2025 года бренд занял второе место среди NEV-брендов в РФ.</div></div>
+        <div class="stat-card reveal"><div class="text-4xl font-extrabold text-glow mb-2">9,465</div><div class="font-semibold mb-2">Регистраций в 2025</div><div class="text-sm text-text-secondary">Это дает масштаб для федеральной PR-платформы и разговора про лидерство сегмента.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide" data-slide="3">
+    <div class="gradient-mesh">
+      <div class="blob" style="width:380px;height:380px;top:-70px;right:-70px;background:var(--color-accent-1);opacity:.09"></div>
+      <div class="blob" style="width:240px;height:240px;bottom:-70px;left:-40px;background:var(--color-accent-3);opacity:.07"></div>
+    </div>
+    <canvas class="particle-canvas-ambient" style="position:absolute;inset:0;z-index:1"></canvas>
+    <div class="content">
+      <h2 class="font-display text-[clamp(2rem,4vw,3rem)] font-bold mb-8 reveal">3 согласованных направления</h2>
+      <div class="grid grid-cols-3 gap-6">
+        <div class="stat-card reveal hover:-translate-y-1 transition"><div class="text-2xl mb-3">1</div><div class="font-bold text-xl mb-2">География зарядной инфраструктуры</div><div class="text-sm text-text-secondary">Повод: Evolute сообщает, что зарядка доступна уже в 20 регионах, а карта ЭЗС в экосистеме бренда масштабируется.</div></div>
+        <div class="stat-card reveal hover:-translate-y-1 transition"><div class="text-2xl mb-3">2</div><div class="font-bold text-xl mb-2">Электромобили в такси и доставке</div><div class="text-sm text-text-secondary">Повод: рынок такси и last-mile доставки примеряет EV как рабочий инструмент, а не только личный транспорт.</div></div>
+        <div class="stat-card reveal hover:-translate-y-1 transition"><div class="text-2xl mb-3">3</div><div class="font-bold text-xl mb-2">Электро-регионы</div><div class="text-sm text-text-secondary">Повод: собственный рейтинг 10 регионов, наиболее готовых к электротранспорту и ежедневной эксплуатации.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide" data-slide="4">
+    <div class="gradient-mesh"><div class="blob" style="width:300px;height:300px;top:-80px;right:-50px;background:var(--color-accent-2);opacity:.07"></div><div class="blob" style="width:260px;height:260px;bottom:-70px;left:-50px;background:var(--color-accent-1);opacity:.06"></div></div>
+    <div class="content">
+      <h2 class="font-display text-[clamp(2rem,4vw,3rem)] font-bold mb-3 reveal">Направление 1. География зарядной инфраструктуры</h2>
+      <p class="text-text-secondary text-lg mb-8 reveal">Evolute показывает, что карта зарядок для владельцев уже доступна в России, а на 1 марта 2025 года в приложении было 926 ЭЗС в более чем 300 населенных пунктах, включая 754 быстрые DC-станции. Для VOYAH это удобный заход в тему “электромобиль без тревоги по маршруту” с акцентом на федеральную зрелость инфраструктуры.</p>
+      <div class="grid grid-cols-2 gap-6">
+        <div class="stat-card reveal">
+          <div class="text-sm uppercase tracking-[.18em] text-text-muted mb-3">Что делаем</div>
+          <ul class="text-base text-text-secondary space-y-3">
+            <li>• Лонгрид/спецпроект с картой регионов и маршрутов.</li>
+            <li>• Редакционная аналитика: где EV уже удобен для повседневного использования.</li>
+            <li>• Экспертный комментарий бренда: как меняется паттерн владения.</li>
+            <li>• Интеграция модели VOYAH как “премиум без инфраструктурного компромисса”.</li>
+          </ul>
+        </div>
+        <div class="stat-card reveal">
+          <div class="text-sm uppercase tracking-[.18em] text-text-muted mb-4">Какие цифры выносим</div>
+          <div class="space-y-5">
+            <div><div class="flex justify-between mb-2 text-sm"><span>ЭЗС в приложении Evolute</span><span>926</span></div><div class="bar-track"><div class="bar-fill" data-width="93"></div></div></div>
+            <div><div class="flex justify-between mb-2 text-sm"><span>Быстрые DC-станции</span><span>754</span></div><div class="bar-track"><div class="bar-fill" data-width="75"></div></div></div>
+            <div><div class="flex justify-between mb-2 text-sm"><span>Населенные пункты</span><span>300+</span></div><div class="bar-track"><div class="bar-fill" data-width="62"></div></div></div>
+            <div><div class="flex justify-between mb-2 text-sm"><span>Охват повода</span><span>20 регионов</span></div><div class="bar-track"><div class="bar-fill" data-width="48"></div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide" data-slide="5">
+    <div class="gradient-mesh"><div class="blob" style="width:320px;height:320px;top:-90px;right:-50px;background:var(--color-accent-1);opacity:.08"></div><div class="blob" style="width:240px;height:240px;bottom:-40px;left:-40px;background:var(--color-accent-3);opacity:.06"></div></div>
+    <div class="content">
+      <h2 class="font-display text-[clamp(1.9rem,3.8vw,2.8rem)] font-bold mb-8 reveal">Форматы внутри направления 1</h2>
+      <div class="grid grid-cols-3 gap-6">
+        <div class="stat-card reveal"><div class="text-3xl mb-2">🗺️</div><div class="font-bold mb-2">Интерактивная карта</div><div class="text-sm text-text-secondary">Федеральная карта с фильтрами: мегаполисы, трассы, туристические коридоры, бизнес-маршруты.</div></div>
+        <div class="stat-card reveal"><div class="text-3xl mb-2">🧭</div><div class="font-bold mb-2">Маршрутные сценарии</div><div class="text-sm text-text-secondary">Москва—СПб, южное направление, города-миллионники: где уже можно уверенно ездить на EV.</div></div>
+        <div class="stat-card reveal"><div class="text-3xl mb-2">🎙️</div><div class="font-bold mb-2">PR-упаковка</div><div class="text-sm text-text-secondary">Комментарий бренда + редакционный вывод: электричка становится частью нормальной мобильности, не экзотикой.</div></div>
+      </div>
+      <div class="mt-8 stat-card reveal">
+        <div class="font-semibold mb-2">Headline-подача</div>
+        <div class="text-text-secondary">«Россия подключается: где премиальный электромобиль уже живет без инфраструктурной тревоги».</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide" data-slide="6">
+    <div class="gradient-mesh"><div class="blob" style="width:360px;height:360px;top:-70px;right:-70px;background:var(--color-accent-2);opacity:.08"></div><div class="blob" style="width:250px;height:250px;bottom:-50px;left:-50px;background:var(--color-accent-1);opacity:.07"></div></div>
+    <div class="content">
+      <h2 class="font-display text-[clamp(2rem,4vw,3rem)] font-bold mb-3 reveal">Направление 2. Электромобили в такси и доставке</h2>
+      <p class="text-text-secondary text-lg mb-8 reveal">Уже в 2022 году обсуждались поставки Evolute для партнеров Яндекс Go, а в 2024 году бренд указывал, что в Нижнем Новгороде в сервисах такси работают более 300 электромобилей Evolute. Это сильный инфоповод для B2B-истории: EV — это уже не эксперимент, а операционная модель для такси и доставки.</p>
+      <div class="grid grid-cols-2 gap-6">
+        <div class="stat-card reveal">
+          <div class="text-5xl font-black text-glow mb-3">300+</div>
+          <div class="font-semibold mb-2">электромобилей в Нижнем Новгороде</div>
+          <div class="text-sm text-text-secondary">Хороший локальный кейс, который можно масштабировать в историю про экономику пробега, зарядку и эксплуатацию.</div>
+        </div>
+        <div class="stat-card reveal">
+          <div class="text-sm uppercase tracking-[.18em] text-text-muted mb-3">Как подаем для VOYAH</div>
+          <ul class="text-base text-text-secondary space-y-3">
+            <li>• Исследование по регионам, где EV быстрее входят в парки.</li>
+            <li>• Интервью/колонка: как бизнес считает TCO и простой на зарядке.</li>
+            <li>• Отдельный блок про premium ride-hailing и корпоративные парки.</li>
+            <li>• Переход от “личного EV” к “электромобилю как рабочему активу”.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide" data-slide="7">
+    <div class="gradient-mesh"><div class="blob" style="width:300px;height:300px;top:-80px;right:-60px;background:var(--color-accent-1);opacity:.07"></div><div class="blob" style="width:240px;height:240px;bottom:-60px;left:-40px;background:var(--color-accent-2);opacity:.06"></div></div>
+    <canvas class="particle-canvas-ambient" style="position:absolute;inset:0;z-index:1"></canvas>
+    <div class="content">
+      <h2 class="font-display text-[clamp(1.9rem,3.8vw,2.8rem)] font-bold mb-8 reveal">Сюжеты внутри направления 2</h2>
+      <div class="grid grid-cols-3 gap-6">
+        <div class="stat-card reveal"><div class="text-3xl mb-2">🚕</div><div class="font-bold mb-2">Электротакси как новая норма</div><div class="text-sm text-text-secondary">Какие города уже готовы, где хватает плеча маршрута и как меняется клиентский опыт.</div></div>
+        <div class="stat-card reveal"><div class="text-3xl mb-2">📦</div><div class="font-bold mb-2">Доставка и last-mile</div><div class="text-sm text-text-secondary">Городская логистика, регулярный пробег, короткие циклы и чувствительность к операционным расходам.</div></div>
+        <div class="stat-card reveal"><div class="text-3xl mb-2">💼</div><div class="font-bold mb-2">Корпоративный EV-парк</div><div class="text-sm text-text-secondary">Для VOYAH — мост в премиум-сегмент корпоративных перевозок, шаттлов и executive mobility.</div></div>
+      </div>
+      <div class="mt-8 stat-card reveal">
+        <div class="font-semibold mb-2">Headline-подача</div>
+        <div class="text-text-secondary">«Когда электричество работает: как такси и доставка адаптируют рынок под EV уже сейчас».</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide" data-slide="8">
+    <div class="gradient-mesh"><div class="blob" style="width:340px;height:340px;top:-80px;right:-60px;background:var(--color-accent-3);opacity:.08"></div><div class="blob" style="width:260px;height:260px;bottom:-50px;left:-30px;background:var(--color-accent-1);opacity:.06"></div></div>
+    <div class="content">
+      <h2 class="font-display text-[clamp(2rem,4vw,3rem)] font-bold mb-3 reveal">Направление 3. Электро-регионы</h2>
+      <p class="text-text-secondary text-lg mb-8 reveal">Третье направление лучше всего работает как собственный рейтинг от бренда: не “где больше всего EV”, а “где регион уже готов к ежедневной электрической мобильности”. Основой могут стать плотность ЭЗС, число населенных пунктов с зарядкой, климатическая и дорожная комфортность, доля корпоративных сценариев и активность местного рынка.</p>
+      <div class="grid grid-cols-2 gap-6">
+        <div class="stat-card reveal">
+          <div class="font-semibold mb-4">Базовая логика индекса</div>
+          <ul class="text-base text-text-secondary space-y-3">
+            <li>• Инфраструктура: число ЭЗС и доля быстрых станций.</li>
+            <li>• Городская пригодность: размер агломераций и типовые маршруты.</li>
+            <li>• Экономика эксплуатации: такси, доставка, корпоративные парки.</li>
+            <li>• Символический капитал: регион как витрина новой мобильности.</li>
+          </ul>
+        </div>
+        <div class="stat-card reveal">
+          <div class="font-semibold mb-4">Какой результат для медиа</div>
+          <div class="grid grid-cols-2 gap-4 text-sm text-text-secondary">
+            <div class="rounded-2xl border border-white/10 p-4">Топ-10 регионов</div>
+            <div class="rounded-2xl border border-white/10 p-4">Карта лидеров и догоняющих</div>
+            <div class="rounded-2xl border border-white/10 p-4">Комментарий по критериям</div>
+            <div class="rounded-2xl border border-white/10 p-4">Повторяемый ежегодный формат</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide" data-slide="9">
+    <div class="gradient-mesh"><div class="blob" style="width:320px;height:320px;top:-70px;right:-60px;background:var(--color-accent-1);opacity:.08"></div><div class="blob" style="width:220px;height:220px;bottom:-40px;left:-30px;background:var(--color-accent-2);opacity:.06"></div></div>
+    <div class="content">
+      <h2 class="font-display text-[clamp(1.9rem,3.8vw,2.8rem)] font-bold mb-8 reveal">Черновой top-10 для рейтинга</h2>
+      <div class="grid grid-cols-2 gap-6">
+        <div class="stat-card reveal">
+          <div class="space-y-3 text-text-secondary text-base">
+            <div>1. Москва и Московская область</div>
+            <div>2. Санкт-Петербург и Ленобласть</div>
+            <div>3. Краснодарский край</div>
+            <div>4. Татарстан</div>
+            <div>5. Нижегородская область</div>
+          </div>
+        </div>
+        <div class="stat-card reveal">
+          <div class="space-y-3 text-text-secondary text-base">
+            <div>6. Свердловская область</div>
+            <div>7. Ростовская область</div>
+            <div>8. Новосибирская область</div>
+            <div>9. Приморский край</div>
+            <div>10. Калининградская область</div>
+          </div>
+        </div>
+      </div>
+      <div class="mt-8 stat-card reveal"><div class="text-sm text-text-secondary">Логику рейтинга можно утвердить после сверки с данными бренда, партнерами по ЭЗС и открытыми отраслевыми источниками. Тогда проект станет собственностью VOYAH, а не пересказом чужой статистики.</div></div>
+    </div>
+  </div>
+
+  <div class="slide" data-slide="10">
+    <div class="gradient-mesh"><div class="blob" style="width:360px;height:360px;top:-90px;right:-70px;background:var(--color-accent-2);opacity:.08"></div><div class="blob" style="width:260px;height:260px;bottom:-60px;left:-40px;background:var(--color-accent-3);opacity:.07"></div></div>
+    <div class="content">
+      <h2 class="font-display text-[clamp(1.9rem,3.8vw,2.8rem)] font-bold mb-8 reveal">Единая редакционная рамка проекта</h2>
+      <div class="grid grid-cols-3 gap-6">
+        <div class="stat-card reveal"><div class="text-3xl mb-2">📰</div><div class="font-bold mb-2">Инфоповод</div><div class="text-sm text-text-secondary">Берем уже существующий новостной триггер и делаем из него не заметку, а тематический пакет материалов.</div></div>
+        <div class="stat-card reveal"><div class="text-3xl mb-2">🔬</div><div class="font-bold mb-2">Экспертиза</div><div class="text-sm text-text-secondary">VOYAH выступает не продавцом модели, а брендом, который объясняет зрелость рынка электротранспорта.</div></div>
+        <div class="stat-card reveal"><div class="text-3xl mb-2">🎯</div><div class="font-bold mb-2">Нативная интеграция</div><div class="text-sm text-text-secondary">Модельный ряд появляется как подтверждение тезиса: премиальный EV уже вписан в реальную российскую мобильность.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide" data-slide="11">
+    <div class="gradient-mesh"><div class="blob" style="width:340px;height:340px;top:-70px;right:-60px;background:var(--color-accent-1);opacity:.09"></div><div class="blob" style="width:240px;height:240px;bottom:-60px;left:-40px;background:var(--color-accent-2);opacity:.06"></div></div>
+    <div class="content">
+      <h2 class="font-display text-[clamp(1.9rem,3.8vw,2.8rem)] font-bold mb-8 reveal">Что отдать клиенту как предложение</h2>
+      <div class="grid grid-cols-2 gap-6">
+        <div class="stat-card reveal">
+          <div class="font-semibold mb-3">Базовый пакет</div>
+          <ul class="text-text-secondary space-y-3 text-base">
+            <li>• 1 флагманский материал/спецпроект.</li>
+            <li>• 3 редакционных анонса под разные углы.</li>
+            <li>• 1 карточка/срез с цифрами для соцдистрибуции.</li>
+            <li>• Цитаты спикера бренда и нативный product placement.</li>
+          </ul>
+        </div>
+        <div class="stat-card reveal">
+          <div class="font-semibold mb-3">Расширенный пакет</div>
+          <ul class="text-text-secondary space-y-3 text-base">
+            <li>• Серия из 3 материалов по всем направлениям.</li>
+            <li>• Индекс “Электро-регионы” как брендируемый актив.</li>
+            <li>• Динамический лендинг/карта + ретаргетинг на аудитории авто и tech.</li>
+            <li>• Второй инфоповод через квартал как продолжение кампании.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide" data-slide="12">
+    <div class="gradient-mesh">
+      <div class="blob" style="width:460px;height:460px;top:-100px;right:-100px;background:var(--color-accent-1);opacity:.14"></div>
+      <div class="blob" style="width:300px;height:300px;bottom:-80px;left:-80px;background:var(--color-accent-2);opacity:.12"></div>
+      <div class="blob" style="width:220px;height:220px;top:38%;left:16%;background:var(--color-accent-3);opacity:.10"></div>
+    </div>
+    <canvas class="particle-canvas" style="position:absolute;inset:0;z-index:1"></canvas>
+    <div class="content text-center">
+      <div class="reveal text-[100px] mb-4" style="animation:float 3s ease-in-out infinite">🚘</div>
+      <h2 class="font-display text-[clamp(2.4rem,5vw,4.2rem)] font-black bg-linear-to-br from-accent-1 via-accent-2 to-accent-3 bg-clip-text text-transparent tracking-tight mb-4 reveal">Следующий шаг</h2>
+      <p class="text-xl text-text-secondary max-w-3xl mx-auto reveal">Фиксируем один приоритетный трек для VOYAH, после чего докручиваем структуру, headlines, KPI и смету в коммерческое предложение.</p>
+    </div>
+  </div>
+</div>
+
+<div class="nav-controls" aria-label="Навигация по слайдам">
+  <button class="nav-btn" onclick="changeSlide(-1)" aria-label="Предыдущий слайд">&#8249;</button>
+  <div class="slide-dots" id="dots"></div>
+  <button class="nav-btn" onclick="changeSlide(1)" aria-label="Следующий слайд">&#8250;</button>
+  <span class="slide-counter" id="counter">1 / 12</span>
+</div>
+
+<script>
+let current = 1;
+const total = document.querySelectorAll('.slide').length;
+const dotsContainer = document.getElementById('dots');
+const counter = document.getElementById('counter');
+for (let i = 1; i <= total; i++) { const dot = document.createElement('div'); dot.className = 'dot' + (i === 1 ? ' active' : ''); dot.onclick = () => goToSlide(i); dotsContainer.appendChild(dot); }
+function goToSlide(n) { const prev = document.querySelector('.slide.active'); const next = document.querySelector(`.slide[data-slide="${n}"]`); if (prev) prev.classList.remove('active'); if (next) { next.classList.add('active'); animateSlide(next); } current = n; updateNav(); }
+function changeSlide(dir) { let next = current + dir; if (next < 1) next = total; if (next > total) next = 1; goToSlide(next); }
+function updateNav() { document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i + 1 === current)); counter.textContent = current + ' / ' + total; }
+document.addEventListener('keydown', (e) => { if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); changeSlide(1); } if (e.key === 'ArrowLeft') { e.preventDefault(); changeSlide(-1); } });
+let touchStartX = 0;
+document.addEventListener('touchstart', (e) => { touchStartX = e.touches[0].clientX; });
+document.addEventListener('touchend', (e) => { const diff = touchStartX - e.changedTouches[0].clientX; if (Math.abs(diff) > 50) changeSlide(diff > 0 ? 1 : -1); });
+function animateSlide(slide) {
+  slide.querySelectorAll('.reveal').forEach((el, i) => {
+    el.style.transition = 'none'; el.style.opacity = '0'; el.style.transform = 'translateY(20px)'; el.offsetHeight;
+    const delay = i * 0.08; el.style.transition = `opacity 0.35s ease ${delay}s, transform 0.35s ease ${delay}s`; el.style.opacity = '1'; el.style.transform = 'translateY(0px)';
+  });
+  slide.querySelectorAll('.bar-fill:not(.fill-init)').forEach((bar, i) => { bar.classList.add('fill-init'); bar.style.width = '0%'; bar.style.transition = `width 0.6s ease ${i*0.08}s`; bar.offsetHeight; bar.style.width = bar.dataset.width + '%'; });
+}
+document.addEventListener('mousemove', (e) => { const spotlight = document.querySelector('.mouse-spotlight'); const rgb = getComputedStyle(document.documentElement).getPropertyValue('--glow-color-rgb').trim() || '79,209,197'; spotlight.style.background = `radial-gradient(600px circle at ${e.clientX}px ${e.clientY}px, rgba(${rgb}, 0.06), transparent 40%)`; });
+window.initParticles = function(canvas, options) {
+  if (!canvas) return; const ctx = canvas.getContext('2d'); canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight;
+  const interactive = options.interactive !== false; const count = options.count || (interactive ? 55 : 18); let mx = -1000, my = -1000;
+  const rgb = getComputedStyle(document.documentElement).getPropertyValue('--glow-color-rgb').trim() || '79,209,197'; const [r,g,b] = rgb.split(',').map(Number);
+  const particles = Array.from({ length: count }, () => ({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, vx:(Math.random()-0.5)*0.3, vy:(Math.random()-0.5)*0.3, size:Math.random()*2.5+0.8, alpha:Math.random()*0.35+0.1 }));
+  if (interactive) { canvas.addEventListener('mousemove', (e) => { const rect = canvas.getBoundingClientRect(); mx = e.clientX - rect.left; my = e.clientY - rect.top; }); canvas.addEventListener('mouseleave', () => { mx = -1000; my = -1000; }); }
+  (function animate() { ctx.clearRect(0,0,canvas.width,canvas.height); particles.forEach(p => { if (interactive) { const dx=p.x-mx, dy=p.y-my, dist=Math.sqrt(dx*dx+dy*dy); if (dist<120 && dist>0) { const force=(120-dist)/120*2; p.vx += (dx/dist)*force*0.1; p.vy += (dy/dist)*force*0.1; } } p.vx*=0.98; p.vy*=0.98; p.x+=p.vx; p.y+=p.vy; if (p.x<0) p.x=canvas.width; if (p.x>canvas.width) p.x=0; if (p.y<0) p.y=canvas.height; if (p.y>canvas.height) p.y=0; ctx.beginPath(); ctx.arc(p.x,p.y,p.size,0,Math.PI*2); ctx.fillStyle=`rgba(${r},${g},${b},${p.alpha})`; ctx.fill(); }); requestAnimationFrame(animate); })();
+};
+document.querySelectorAll('.particle-canvas').forEach(c => window.initParticles(c, { interactive: true, count: 55 }));
+document.querySelectorAll('.particle-canvas-ambient').forEach(c => window.initParticles(c, { interactive: false, count: 18 }));
+try { animateSlide(document.querySelector('.slide.active')); } catch(e) {}
+</script>
+</body>
+</html>
